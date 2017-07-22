@@ -1,0 +1,1 @@
+# define all properties which spring boot application accepts int *.properties file.
