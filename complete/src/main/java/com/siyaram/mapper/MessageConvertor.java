@@ -28,7 +28,8 @@ public class MessageConvertor {
 		   Message msg = new Message();
 		   msg.setMessageId(messageDto.getMessage_id());
 		   msg.setMessageContent(messageDto.getMessage_content());
-		   messages.add(msg);
+		   msg.setReceivers(messageDto.getReceivers());
+		   messages.add(msg);		   
 		}
 		return messages;
 	}

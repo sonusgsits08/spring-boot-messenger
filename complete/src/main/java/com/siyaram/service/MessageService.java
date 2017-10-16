@@ -13,47 +13,46 @@ import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.util.CollectionUtils;
 
+import com.google.common.collect.Lists;
 import com.siyaram.dto.MessageDto;
 import com.siyaram.mapper.MessageConvertor;
-import com.siyaram.message.SendMessage;
 import com.siyaram.model.Message;
 
 @Service
 public class MessageService {
 	
-	@PersistenceContext
-	private EntityManager entityManager;
+	@PersistenceContext(name = "entityManager")
+	private transient EntityManager entityManager;
 	
 	@Autowired
 	private MessageConvertor messageConvertor;
 	
-	@Autowired
-	private SendMessage sendMessage;
-
 	@SuppressWarnings("unchecked")
-	public Map<String, List<MessageDto>> getMessage(String messageId) throws IOException {		
+	public Map<Long, List<MessageDto>> getMessage(Long messageId) throws IOException {		
 		List <Message> dbMessages=null;
 		List<MessageDto> messageDtos=null;
 		Query query =  entityManager.createQuery("from Message where messageId = :messageId");
 		query.setParameter("messageId", messageId);
 		dbMessages = query.getResultList();
 		messageDtos = messageConvertor.convertMessagetoMessageDto(dbMessages);
-		Map<String,List<MessageDto>> response = new HashMap<>();
-		//SEND MQ MESSAGE WHEN NO MESSAGE IS FOUND IN DATABSE
-		if(CollectionUtils.isEmpty(messageDtos)){			
-			sendMessage.sendRabbitMessage(messageId);
-		}
+		Map<Long,List<MessageDto>> response = new HashMap<>();		
 		response.put(messageId, messageDtos);
 		return response;
 	}
 
 	@Transactional
-	public void updateMessage(MessageDto inputMessageDto) {
+	public Message updateMessage(MessageDto inputMessageDto) {
 		List<MessageDto> msgDto = new ArrayList<>();
 		msgDto.add(inputMessageDto);
 		List<Message> messages = messageConvertor.convertMessageDtotoMessage(msgDto);
-		entityManager.merge(messages.get(0));			
+		Message msg = entityManager.merge(messages.get(0));
+		return msg;
+	}
+	@Transactional
+	public void createMessage(MessageDto createMessageDto) {		
+		List<Message> messages = messageConvertor.convertMessageDtotoMessage(Lists.newArrayList(createMessageDto));		
+			entityManager.persist(messages.get(0));
+			entityManager.flush();		
 	}
 }
